@@ -7,18 +7,18 @@ from src.data_loader import DataLoader
 from src.evaluate import Evaluator
 from src.forecast import Forecaster
 
-# -----------------------------
-# Page Config
-# -----------------------------
+# ---------------------------------
+# Page Configuration
+# ---------------------------------
 st.set_page_config(
     page_title="Airline Passenger Forecasting",
     page_icon="✈️",
     layout="wide"
 )
-# -----------------------------------
-# Sidebar
-# -----------------------------------
 
+# ---------------------------------
+# Sidebar
+# ---------------------------------
 with st.sidebar:
 
     st.image("assets/airplane.png", width=150)
@@ -27,21 +27,20 @@ with st.sidebar:
 
     future_months = st.slider(
         "Forecast Months",
-        1,
-        24,
-        12
+        min_value=1,
+        max_value=24,
+        value=12
     )
 
     st.markdown("---")
-    #st.markdown(text, unsafe_allow_html=True)   
 
     st.info(
         "Forecast future airline passenger demand using an LSTM model."
     )
 
-# -----------------------------
+# ---------------------------------
 # Custom CSS
-# -----------------------------
+# ---------------------------------
 st.markdown("""
 <style>
 
@@ -65,42 +64,19 @@ st.markdown("""
     color:gray;
 }
 
-.metric-card{
-    background:white;
-    padding:18px;
-    border-radius:15px;
-    box-shadow:0px 4px 12px rgba(0,0,0,0.1);
-    text-align:center;
-}
-
-.stButton>button{
-    width:100%;
-    height:55px;
-    background:#1565C0;
-    color:white;
-    font-size:18px;
-    border-radius:10px;
-    border:none;
-}
-
-.stButton>button:hover{
-    background:#0D47A1;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------------
-# Load Data
-# -----------------------------
-loader = DataLoader(r"data/airline-passengers.csv")
+# ---------------------------------
+# Load Dataset
+# ---------------------------------
+loader = DataLoader("data/airline-passengers.csv")
 df = loader.load_data()
 
-# -----------------------------
+# ---------------------------------
 # Header
-# -----------------------------
-st.markdown(
-"""
+# ---------------------------------
+st.markdown("""
 <div class="title">
 ✈️ Airline Passenger Forecasting Dashboard
 </div>
@@ -108,34 +84,31 @@ st.markdown(
 <div class="subtitle">
 Forecast future passenger demand using Deep Learning (LSTM)
 </div>
-""",
-unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# -----------------------------
-# Metrics
-# -----------------------------
-mae, mse, rmse = Evaluator().evaluate()
+# ---------------------------------
+# Evaluation Metrics
+# ---------------------------------
+try:
+    mae, mse, rmse = Evaluator().evaluate()
 
-c1, c2, c3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-with c1:
-    st.metric("MAE", f"{mae:.2f}")
+    c1.metric("MAE", f"{mae:.2f}")
+    c2.metric("MSE", f"{mse:.2f}")
+    c3.metric("RMSE", f"{rmse:.2f}")
 
-with c2:
-    st.metric("MSE", f"{mse:.2f}")
-
-with c3:
-    st.metric("RMSE", f"{rmse:.2f}")
+except Exception as e:
+    st.error(f"Error calculating metrics: {e}")
 
 st.markdown("---")
 
-# -----------------------------
-# Historical Chart
-# -----------------------------
-left, right = st.columns([2,1])
+# ---------------------------------
+# Historical Data
+# ---------------------------------
+left, right = st.columns([2, 1])
 
 with left:
 
@@ -145,20 +118,20 @@ with left:
         df,
         x=df.index,
         y="total_passengers",
-        markers=True
+        markers=True,
+        title="Monthly Passenger Count"
     )
 
     fig.update_layout(
         template="plotly_white",
-        height=500,
-        title="Monthly Passenger Count"
+        height=500
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
 with right:
 
-    st.subheader("📋 Dataset")
+    st.subheader("📋 Recent Data")
 
     st.dataframe(
         df.tail(12),
@@ -168,92 +141,95 @@ with right:
 
 st.markdown("---")
 
-# -----------------------------
-# Forecast
-# -----------------------------
+# ---------------------------------
+# Forecast Section
+# ---------------------------------
 st.header("🔮 Future Forecast")
 
 if st.button("Generate Forecast"):
 
-    with st.spinner("Running LSTM Model..."):
+    try:
 
-        forecaster = Forecaster()
+        with st.spinner("Generating Forecast..."):
 
-        future = forecaster.forecast(future_months)
+            forecaster = Forecaster()
 
-    last_date = df.index[-1]
+            future = forecaster.forecast(future_months)
 
-    future_dates = pd.date_range(
-        last_date + pd.DateOffset(months=1),
-        periods=future_months,
-        freq="MS"
-    )
+        last_date = df.index[-1]
 
-    forecast_df = pd.DataFrame({
-
-        "Month":future_dates,
-
-        "Predicted Passengers":future.flatten()
-
-    })
-
-    st.success("Forecast Generated Successfully!")
-
-    col1,col2 = st.columns([1,2])
-
-    with col1:
-
-        st.subheader("Forecast Values")
-
-        st.dataframe(
-            forecast_df,
-            use_container_width=True
+        future_dates = pd.date_range(
+            start=last_date + pd.DateOffset(months=1),
+            periods=future_months,
+            freq="MS"
         )
 
-        csv = forecast_df.to_csv(index=False).encode()
+        forecast_df = pd.DataFrame({
+            "Month": future_dates,
+            "Predicted Passengers": future.flatten()
+        })
 
-        st.download_button(
-            "📥 Download CSV",
-            csv,
-            "forecast.csv",
-            "text/csv"
-        )
+        st.success("Forecast Generated Successfully!")
 
-    with col2:
+        col1, col2 = st.columns([1, 2])
 
-        fig2 = go.Figure()
+        with col1:
 
-        fig2.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df["total_passengers"],
-                mode="lines",
-                name="Historical"
+            st.subheader("Forecast Values")
+
+            st.dataframe(
+                forecast_df,
+                use_container_width=True
             )
-        )
 
-        fig2.add_trace(
-            go.Scatter(
-                x=forecast_df["Month"],
-                y=forecast_df["Predicted Passengers"],
-                mode="lines+markers",
-                name="Forecast"
+            csv = forecast_df.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="📥 Download Forecast CSV",
+                data=csv,
+                file_name="forecast.csv",
+                mime="text/csv"
             )
-        )
 
-        fig2.update_layout(
-            template="plotly_white",
-            title="Historical vs Forecast",
-            height=500
-        )
+        with col2:
 
-        st.plotly_chart(
-            fig2,
-            use_container_width=True
-        )
+            fig2 = go.Figure()
 
+            fig2.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df["total_passengers"],
+                    mode="lines",
+                    name="Historical"
+                )
+            )
+
+            fig2.add_trace(
+                go.Scatter(
+                    x=forecast_df["Month"],
+                    y=forecast_df["Predicted Passengers"],
+                    mode="lines+markers",
+                    name="Forecast"
+                )
+            )
+
+            fig2.update_layout(
+                template="plotly_white",
+                title="Historical vs Forecast",
+                height=500
+            )
+
+            st.plotly_chart(
+                fig2,
+                use_container_width=True
+            )
+
+    except Exception as e:
+        st.error(f"Forecast failed: {e}")
+
+# ---------------------------------
+# Footer
+# ---------------------------------
 st.markdown("---")
 
-st.markdown(
-unsafe_allow_html=True
-)
+st.caption("© 2026 Airline Passenger Forecasting Dashboard | Built with Streamlit")
