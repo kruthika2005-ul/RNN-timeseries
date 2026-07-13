@@ -20,11 +20,11 @@ class Forecaster:
     def __init__(self):
 
         # Change this if your file is airline-passengers.csv.csv
-        self.data_path = r"data\airline-passengers.csv"
+        self.data_path = r"data/airline-passengers.csv"
 
-        self.model_path = r"models\lstm_model.keras"
+        self.model_path = r"models/lstm_model.keras"
 
-        self.scaler_path = r"models\scaler.pkl"
+        self.scaler_path = r"models/scaler.pkl"
 
         self.sequence_length = 12
 
