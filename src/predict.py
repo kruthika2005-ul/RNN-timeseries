@@ -20,7 +20,7 @@ class Predictor:
     def __init__(self):
 
         # Change this if your file is airline-passengers.csv.csv
-        self.data_path = r"data\airline-passengers.csv"
+        self.data_path = r"data/airline-passengers.csv"
 
         self.model_path = r"models\lstm_model.keras"
 
