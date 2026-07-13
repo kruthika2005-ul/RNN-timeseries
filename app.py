@@ -32,7 +32,8 @@ with st.sidebar:
         12
     )
 
-    st.markdown("---")
+    #st.markdown("---")
+    st.markdown(text, unsafe_allow_html=True)   
 
     st.info(
         "Forecast future airline passenger demand using an LSTM model."
